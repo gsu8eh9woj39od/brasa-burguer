@@ -1,1 +1,292 @@
 
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Brasa Burger | Administração</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: Arial, sans-serif; background: #fff7f0; color: #261b17; }
+    header { background: #261b17; color: white; padding: 25px; text-align: center; }
+    header h1 { margin: 0; }
+    main { max-width: 950px; margin: 35px auto; padding: 15px; }
+    .card { background: white; padding: 25px; border-radius: 15px; box-shadow: 0 4px 20px #0001; margin-bottom: 20px; }
+    input, textarea, button { font: inherit; }
+    input, textarea { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; margin: 7px 0 15px; }
+    button { background: #e94b2c; color: white; border: 0; padding: 12px 18px; border-radius: 8px; cursor: pointer; }
+    button:hover { opacity: .9; }
+    button.secondary { background: #555; }
+    button.danger { background: #b42318; }
+    .hidden { display: none; }
+    .top { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+    .product { border-top: 1px solid #eee; padding: 15px 0; }
+    .product button { margin: 5px 5px 0 0; }
+    .message { margin-top: 12px; font-weight: bold; }
+    .error { color: #b42318; }
+    .success { color: #16803c; }
+  </style>
+</head>
+<body>
+<header>
+  <h1>🔥 BRASA BURGER</h1>
+  <p>Painel administrativo</p>
+</header>
+
+<main>
+  <section id="login" class="card">
+    <h2>Entrar no painel</h2>
+    <form id="loginForm">
+      <label>E-mail</label>
+      <input id="email" type="email" required>
+      <label>Senha</label>
+      <input id="senha" type="password" required>
+      <button type="submit">Entrar</button>
+    </form>
+    <p id="loginMsg" class="message"></p>
+  </section>
+
+  <section id="painel" class="hidden">
+    <div class="card top">
+      <div>
+        <h2>Gerenciar cardápio</h2>
+        <p id="restauranteNome"></p>
+      </div>
+      <button id="sair" class="secondary">Sair</button>
+    </div>
+
+    <section class="card">
+      <h3 id="formTitulo">Adicionar produto</h3>
+      <form id="produtoForm">
+        <label>Nome</label>
+        <input id="nome" required>
+
+        <label>Descrição</label>
+        <textarea id="descricao" rows="3"></textarea>
+
+        <label>Preço (R$)</label>
+        <input id="preco" type="number" min="0" step="0.01" required>
+
+        <button type="submit" id="salvarProduto">Salvar produto</button>
+        <button type="button" id="cancelarEdicao" class="secondary hidden">Cancelar edição</button>
+      </form>
+      <p id="produtoMsg" class="message"></p>
+    </section>
+
+    <section class="card">
+      <h3>Produtos cadastrados</h3>
+      <div id="listaProdutos">Carregando...</div>
+    </section>
+  </section>
+</main>
+
+<script>
+  // Use somente a chave PÚBLICA (publishable), nunca uma secret/service_role.
+  const SUPABASE_URL = "https://cjwxblneslfkqumvvvwg.supabase.co";
+  const SUPABASE_KEY = "sb_publishable_YlAn3iOjDEbwIbHXnU-3ow_cv_Q3mLq";
+
+  const $ = id => document.getElementById(id);
+  let token = "";
+  let restauranteId = null;
+  let editandoId = null;
+  let produtosAtuais = [];
+
+  async function requisicao(caminho, opcoes = {}) {
+    const resposta = await fetch(SUPABASE_URL + caminho, {
+      ...opcoes,
+      headers: {
+        apikey: SUPABASE_KEY,
+        ...(token ? { Authorization: "Bearer " + token } : {}),
+        "Content-Type": "application/json",
+        ...(opcoes.headers || {})
+      }
+    });
+
+    if (!resposta.ok) {
+      let detalhe = await resposta.text();
+      throw new Error(detalhe.slice(0, 250));
+    }
+
+    const texto = await resposta.text();
+    return texto ? JSON.parse(texto) : null;
+  }
+
+  function mensagem(id, texto, erro = false) {
+    $(id).textContent = texto;
+    $(id).className = "message " + (erro ? "error" : "success");
+  }
+
+  $("loginForm").addEventListener("submit", async evento => {
+    evento.preventDefault();
+    mensagem("loginMsg", "Entrando...");
+
+    try {
+      const dados = await requisicao("/auth/v1/token?grant_type=password", {
+        method: "POST",
+        body: JSON.stringify({
+          email: $("email").value.trim(),
+          password: $("senha").value
+        })
+      });
+
+      token = dados.access_token;
+
+      const vinculos = await requisicao(
+        "/rest/v1/usuarios_restaurantes?select=restaurante_id&limit=2"
+      );
+
+      if (vinculos.length !== 1) {
+        throw new Error("Esta conta precisa estar vinculada a exatamente um restaurante.");
+      }
+
+      restauranteId = vinculos[0].restaurante_id;
+
+      $("login").classList.add("hidden");
+      $("painel").classList.remove("hidden");
+      $("restauranteNome").textContent = "Restaurante nº " + restauranteId;
+
+      await carregarProdutos();
+    } catch (erro) {
+      token = "";
+      restauranteId = null;
+      mensagem("loginMsg", "Não foi possível entrar: " + erro.message, true);
+    }
+  });
+
+  async function carregarProdutos() {
+    try {
+      produtosAtuais = await requisicao(
+        "/rest/v1/Produtos?select=*&restaurante_id=eq." +
+        encodeURIComponent(restauranteId) + "&order=id.asc"
+      );
+
+      const lista = $("listaProdutos");
+      lista.replaceChildren();
+
+      if (!produtosAtuais.length) {
+        lista.textContent = "Nenhum produto cadastrado.";
+        return;
+      }
+
+      for (const produto of produtosAtuais) {
+        const bloco = document.createElement("div");
+        bloco.className = "product";
+
+        const titulo = document.createElement("strong");
+        titulo.textContent = produto.nome + " | " +
+          Number(produto["preço"]).toLocaleString("pt-BR", {
+            style: "currency", currency: "BRL"
+          });
+
+        const descricao = document.createElement("p");
+        descricao.textContent = produto["descrição"] || "";
+
+        const editar = document.createElement("button");
+        editar.textContent = "Editar";
+        editar.onclick = () => editarProduto(produto.id);
+
+        const excluir = document.createElement("button");
+        excluir.textContent = "Excluir";
+        excluir.className = "danger";
+        excluir.onclick = () => excluirProduto(produto.id);
+
+        bloco.append(titulo, descricao, editar, excluir);
+        lista.append(bloco);
+      }
+    } catch (erro) {
+      mensagem("produtoMsg", "Erro ao carregar: " + erro.message, true);
+    }
+  }
+
+  function limparFormulario() {
+    editandoId = null;
+    $("produtoForm").reset();
+    $("formTitulo").textContent = "Adicionar produto";
+    $("cancelarEdicao").classList.add("hidden");
+  }
+
+  function editarProduto(id) {
+    const produto = produtosAtuais.find(p => p.id === id);
+    if (!produto) return;
+
+    editandoId = id;
+    $("nome").value = produto.nome;
+    $("descricao").value = produto["descrição"] || "";
+    $("preco").value = produto["preço"];
+    $("formTitulo").textContent = "Editar produto";
+    $("cancelarEdicao").classList.remove("hidden");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  $("cancelarEdicao").onclick = limparFormulario;
+
+  $("produtoForm").addEventListener("submit", async evento => {
+    evento.preventDefault();
+
+    const dados = {
+      nome: $("nome").value.trim(),
+      "descrição": $("descricao").value.trim(),
+      "preço": Number($("preco").value)
+    };
+
+    if (!Number.isFinite(dados["preço"]) || dados["preço"] < 0) {
+      mensagem("produtoMsg", "Informe um preço válido.", true);
+      return;
+    }
+
+    try {
+      if (editandoId !== null) {
+        await requisicao(
+          "/rest/v1/Produtos?id=eq." + editandoId +
+          "&restaurante_id=eq." + restauranteId,
+          { method: "PATCH", body: JSON.stringify(dados) }
+        );
+      } else {
+        await requisicao("/rest/v1/Produtos", {
+          method: "POST",
+          body: JSON.stringify({
+            ...dados,
+            restaurante_id: restauranteId
+          })
+        });
+      }
+
+      limparFormulario();
+      mensagem("produtoMsg", "Produto salvo com sucesso!");
+      await carregarProdutos();
+    } catch (erro) {
+      mensagem("produtoMsg", "Erro ao salvar: " + erro.message, true);
+    }
+  });
+
+  async function excluirProduto(id) {
+    if (!confirm("Deseja realmente excluir este produto?")) return;
+
+    try {
+      await requisicao(
+        "/rest/v1/Produtos?id=eq." + id +
+        "&restaurante_id=eq." + restauranteId,
+        { method: "DELETE" }
+      );
+
+      mensagem("produtoMsg", "Produto excluído!");
+      await carregarProdutos();
+    } catch (erro) {
+      mensagem("produtoMsg", "Erro ao excluir: " + erro.message, true);
+    }
+  }
+
+  $("sair").onclick = () => {
+    token = "";
+    restauranteId = null;
+    produtosAtuais = [];
+    limparFormulario();
+    $("painel").classList.add("hidden");
+    $("login").classList.remove("hidden");
+    $("senha").value = "";
+    mensagem("loginMsg", "");
+  };
+</script>
+</body>
+</html>
+
