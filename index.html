@@ -5,6 +5,8 @@
 // PERSONALIZE AQUI: número do restaurante com DDI 55 + DDD + número, apenas dígitos.
 const WHATSAPP_RESTAURANTE = '5516996565112';
 const TAXA_ENTREGA = 5;
+const SUPABASE_URL = 'https://cjwxblneslfkqumvvvwg.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_YlAn3iOjDEbwIbHXnU-3ow_cv_Q3mLq';
 const menu=[{id:1,name:'Brasa Clássico',desc:'Pão brioche, burger 160g, queijo e molho da casa.',price:25,category:'Hambúrgueres',emoji:'🍔'},{id:2,name:'Duplo Cheddar',desc:'Dois burgers, cheddar cremoso e cebola caramelizada.',price:34,category:'Hambúrgueres',emoji:'🍔'},{id:3,name:'Chicken Crocante',desc:'Frango empanado, alface e maionese especial.',price:28,category:'Hambúrgueres',emoji:'🍗'},{id:4,name:'Batata Frita',desc:'Porção crocante com sal e temperos.',price:15,category:'Acompanhamentos',emoji:'🍟'},{id:5,name:'Onion Rings',desc:'Anéis de cebola crocantes.',price:17,category:'Acompanhamentos',emoji:'🧅'},{id:6,name:'Refrigerante Lata',desc:'350 ml, sabor sujeito à disponibilidade.',price:7,category:'Bebidas',emoji:'🥤'},{id:7,name:'Suco Natural',desc:'Copo de 300 ml.',price:10,category:'Bebidas',emoji:'🧃'},{id:8,name:'Brownie',desc:'Brownie de chocolate com calda.',price:14,category:'Sobremesas',emoji:'🍫'}];
 const cart={};let currentCategory='Todos';const money=v=>v.toLocaleString('pt-BR',{style:'currency',currency:'BRL'});const $=id=>document.getElementById(id);
 function renderFilters(){const cats=['Todos',...new Set(menu.map(p=>p.category))];$('filters').innerHTML=cats.map(c=>`<button class="${currentCategory===c?'active':''}" onclick="setCategory('${c}')">${c}</button>`).join('')}
