@@ -28,7 +28,7 @@ const cart={};let currentCategory='Todos';const money=v=>v.toLocaleString('pt-BR
       id: p.id,
       name: p.nome,
      desc: p['descrição'] || '',
-      price: Number(p['preço']),
+      price: Number(String(p['preço'] ?? p.preco ?? 0).replace(',', '.')),
       category: 'Hambúrgueres',
       emoji: '🍔'
     }));
