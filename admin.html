@@ -211,8 +211,8 @@
 
     editandoId = id;
     $("nome").value = produto.nome;
-    $("descricao").value = produto["descrição"] || "";
-    $("preco").value = produto["preço"];
+    $("descricao").value = produto["descricao"] || "";
+    $("preco").value = produto["preco"];
     $("formTitulo").textContent = "Editar produto";
     $("cancelarEdicao").classList.remove("hidden");
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -224,10 +224,10 @@
     evento.preventDefault();
 
     const dados = {
-      nome: $("nome").value.trim(),
-      "descrição": $("descricao").value.trim(),
-      "preço": Number($("preco").value)
-    };
+    nome: $("nome").value.trim(),
+    descricao: $("descricao").value.trim(),
+    preco: Number($("preco").value)
+};
 
     if (!Number.isFinite(dados["preço"]) || dados["preço"] < 0) {
       mensagem("produtoMsg", "Informe um preço válido.", true);
