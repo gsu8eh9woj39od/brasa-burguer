@@ -206,6 +206,7 @@
   function limparFormulario() {
     editandoId = null;
     $("produtoForm").reset();
+    $("categoria").value = "";
     $("formTitulo").textContent = "Adicionar produto";
     $("cancelarEdicao").classList.add("hidden");
   }
@@ -219,6 +220,7 @@
     $("descricao").value = produto["descricao"] || "";
     $("preco").value = produto["preco"];
     $("formTitulo").textContent = "Editar produto";
+    $("categoria").value = produto["categoria_id"] || "";
     $("cancelarEdicao").classList.remove("hidden");
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -231,7 +233,8 @@
     const dados = {
     nome: $("nome").value.trim(),
     descricao: $("descricao").value.trim(),
-    preco: Number($("preco").value)
+    preco: Number($("preco").value),
+categoria_id: Number($("categoria").value)
 };
 
     if (!Number.isFinite(dados["preco"]) || dados["preco"] < 0) {
