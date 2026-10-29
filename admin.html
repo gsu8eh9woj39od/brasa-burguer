@@ -201,7 +201,17 @@ async function carregarCategorias() {
   }
 
   seletor.value = categoriaSelecionada;
-}
+const listaCategorias = $("listaCategorias");
+listaCategorias.replaceChildren();
+
+for (const categoria of categorias) {
+  const item = document.createElement("div");
+  item.textContent = categoria.nome;
+  item.style.padding = "10px";
+  item.style.borderBottom = "1px solid #ddd";
+
+  listaCategorias.appendChild(item);
+}}
   async function carregarProdutos() {
     try {
       produtosAtuais = await requisicao(
