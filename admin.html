@@ -150,7 +150,7 @@
       $("login").classList.add("hidden");
       $("painel").classList.remove("hidden");
       $("restauranteNome").textContent = "Restaurante nº " + restauranteId;
-
+      await carregarCategorias();
       await carregarProdutos();
     } catch (erro) {
       token = "";
@@ -158,7 +158,31 @@
       mensagem("loginMsg", "Não foi possível entrar: " + erro.message, true);
     }
   });
+async function carregarCategorias() {
+  const categorias = await requisicao(
+    "/rest/v1/categorias?select=id,nome&restaurante_id=eq." +
+    encodeURIComponent(restauranteId) + "&order=nome.asc"
+  );
 
+  const seletor = $("categoria");
+  const categoriaSelecionada = seletor.value;
+
+  seletor.replaceChildren();
+
+  const inicial = document.createElement("option");
+  inicial.value = "";
+  inicial.textContent = "Selecione uma categoria";
+  seletor.appendChild(inicial);
+
+  for (const categoria of categorias) {
+    const opcao = document.createElement("option");
+    opcao.value = categoria.id;
+    opcao.textContent = categoria.nome;
+    seletor.appendChild(opcao);
+  }
+
+  seletor.value = categoriaSelecionada;
+}
   async function carregarProdutos() {
     try {
       produtosAtuais = await requisicao(
