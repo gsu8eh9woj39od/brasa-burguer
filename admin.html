@@ -54,7 +54,26 @@
       </div>
       <button id="sair" class="secondary">Sair</button>
     </div>
+<section class="card">
+  <h3>Gerenciar categorias</h3>
 
+  <form id="categoriaForm">
+    <label>Nome da categoria</label>
+    <input
+      type="text"
+      id="nomeCategoria"
+      placeholder="Ex.: Pizzas, Bebidas, Sobremesas"
+      required
+    >
+
+    <button type="submit">Adicionar categoria</button>
+  </form>
+
+  <p id="categoriaMsg" class="message"></p>
+
+  <h4>Categorias cadastradas</h4>
+  <div id="listaCategorias"></div>
+</section>
     <section class="card">
       <h3 id="formTitulo">Adicionar produto</h3>
       <form id="produtoForm">
