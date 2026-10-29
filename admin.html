@@ -337,7 +337,33 @@ categoria_id: Number($("categoria").value)
       mensagem("produtoMsg", "Erro ao excluir: " + erro.message, true);
     }
   }
+$("categoriaForm").addEventListener("submit", async (evento) => {
+  evento.preventDefault();
 
+  const nome = $("nomeCategoria").value.trim();
+
+  if (!nome) return;
+
+  try {
+    await requisicao("/rest/v1/categorias", {
+      method: "POST",
+      headers: {
+        "Prefer": "return=minimal"
+      },
+      body: JSON.stringify({
+        nome: nome,
+        restaurante_id: restauranteId
+      })
+    });
+
+    $("nomeCategoria").value = "";
+    mensagem("categoriaMsg", "Categoria cadastrada com sucesso!");
+    await carregarCategorias();
+
+  } catch (erro) {
+    mensagem("categoriaMsg", "Erro ao cadastrar: " + erro.message, true);
+  }
+});
   $("sair").onclick = () => {
     token = "";
     restauranteId = null;
