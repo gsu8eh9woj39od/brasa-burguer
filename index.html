@@ -4,122 +4,126 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Brasa Burger | Cardápio Digital</title>
-
 <style>
-:root {
-  --red: #e34729;
-  --dark: #211b19;
-  --cream: #fff9f2;
+:root{--red:#e34729;--dark:#211b19;--cream:#fff9f2}
+*{box-sizing:border-box}body{margin:0;background:var(--cream);font-family:system-ui,-apple-system,Segoe UI,sans-serif;color:var(--dark)}
+header{background:#241b19;color:white;padding:28px 20px;text-align:center}
+.logo{font-size:34px;font-weight:900;letter-spacing:-1px}.logo span{color:#ffae58}
+header p{color:#f3d6c1}.banner{background:#fce8d7;padding:18px;text-align:center;font-weight:650}
+.wrap{max-width:1060px;margin:auto;padding:24px 16px 100px}
+.top{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.pill{background:#eaf6e9;color:#256d36;padding:7px 11px;border-radius:100px;font-size:13px}
+.filters{display:flex;gap:8px;overflow:auto;padding:8px 0 24px}
+.filters button{white-space:nowrap;border:1px solid #e4d5c9;background:white;border-radius:22px;padding:10px 15px;cursor:pointer;font-weight:650}
+.filters button.active{background:var(--dark);color:white}
+.products{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:16px}
+.product{background:white;border:1px solid #f0e1d6;border-radius:18px;overflow:hidden;box-shadow:0 5px 18px #3a1b0e0b}
+.art{height:150px;background:linear-gradient(135deg,#ffe0ac,#f4b87d);display:grid;place-items:center;font-size:70px}
+.art img{width:100%;height:100%;object-fit:cover}
+.info{padding:16px}.info h3{margin:0 0 8px}.info p{color:#675d58;min-height:40px}
+.price{font-weight:800;font-size:20px}.info button,.checkout{background:var(--red);border:0;border-radius:9px;padding:11px 15px;color:white;cursor:pointer;font-weight:700}
+.info button{width:100%;margin-top:12px}
+.cart{margin-top:28px;background:white;padding:20px;border-radius:16px;border:1px solid #f0e1d6}
+.cart-item{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid #eee}
+.cart-item button{border:0;background:#eee;border-radius:7px;padding:5px 10px;cursor:pointer}
+.checkout{margin-top:15px}.notice{padding:16px;background:#fff1df;border-radius:10px}
+</style>
+</head>
+<body>
+<header><div class="logo">🔥 BRASA <span>BURGER</span></div><p>Cardápio Digital</p></header>
+<div class="banner">Escolha seus favoritos e monte seu pedido 🍔</div>
+<main class="wrap">
+<div class="top"><h1>Nosso cardápio</h1><span class="pill">Pedidos pelo WhatsApp</span></div>
+<div id="filters" class="filters"></div>
+<div id="status" role="status">Carregando cardápio...</div>
+<div id="products" class="products"></div>
+<section class="cart"><h2>🛒 Meu pedido</h2><div id="cartItems">Seu carrinho está vazio.</div>
+<p id="total"></p><button class="checkout" id="checkout" disabled>Finalizar pelo WhatsApp</button>
+<p class="notice" id="whatsappNotice" hidden>Configure o número de WhatsApp do restaurante no arquivo index.html para receber pedidos.</p>
+</section>
+</main>
+<script>
+"use strict";
+const SUPABASE_URL = "https://cjwxblneslfkqumvvvwg.supabase.co";
+const SUPABASE_KEY = "sb_publishable_YlAn3iOjDEbwIbHXnU-3ow_cv_Q3mLq";
+const RESTAURANTE_ID = null; // Coloque aqui o ID numérico do Brasa Burger, se houver mais de um restaurante.
+const WHATSAPP = ""; // Número com DDI e DDD, ex.: 5511999999999.
+const $ = id => document.getElementById(id);
+let produtos = [], categorias = [], filtro = "todos";
+const carrinho = new Map();
+function dinheiro(n){return Number(n).toLocaleString("pt-BR",{style:"currency",currency:"BRL"});}
+async function consultar(tabela, parametros){
+ const url = SUPABASE_URL + "/rest/v1/" + tabela + "?" + parametros.toString();
+ const resposta = await fetch(url,{headers:{"apikey":SUPABASE_KEY,"Authorization":"Bearer "+SUPABASE_KEY}});
+ if(!resposta.ok)throw new Error("Não foi possível consultar "+tabela+" (HTTP "+resposta.status+"). Verifique as permissões públicas de leitura no Supabase.");
+ return resposta.json();
 }
-
-* { box-sizing: border-box; }
-
-body {
-  margin: 0;
-  background: var(--cream);
-  font-family: system-ui, -apple-system, Segoe UI, sans-serif;
-  color: var(--dark);
+function elemento(tag, classe, texto){
+ const el=document.createElement(tag);if(classe)el.className=classe;if(texto!==undefined)el.textContent=texto;return el;
 }
-
-header {
-  background: #241b19;
-  color: white;
-  padding: 28px 20px;
-  text-align: center;
+function desenharFiltros(){
+ const area=$("filters");area.replaceChildren();
+ const opcoes=[{id:"todos",nome:"Todos"},...categorias.map(c=>({id:String(c.id),nome:c.nome}))];
+ for(const opcao of opcoes){
+  const botao=elemento("button",filtro===opcao.id?"active":"",opcao.nome);
+  botao.type="button";botao.onclick=()=>{filtro=opcao.id;desenharFiltros();desenharProdutos();};area.append(botao);
+ }
 }
-
-header .logo {
-  font-size: 34px;
-  font-weight: 900;
-  letter-spacing: -1px;
+function desenharProdutos(){
+ const area=$("products");area.replaceChildren();
+ const visiveis=produtos.filter(p=>filtro==="todos"||String(p.categoria_id)===filtro);
+ $("status").textContent=visiveis.length?"": "Nenhum produto encontrado nesta categoria.";
+ for(const p of visiveis){
+  const card=elemento("article","product"),art=elemento("div","art");
+  if(p.imagem_url && /^https:\/\//i.test(p.imagem_url)){
+   const img=document.createElement("img");img.src=p.imagem_url;img.alt=p.nome;img.loading="lazy";
+   img.onerror=()=>{art.replaceChildren(document.createTextNode("🍔"));};art.append(img);
+  }else art.textContent="🍔";
+  const info=elemento("div","info"),titulo=elemento("h3","",p.nome),desc=elemento("p","",p.descricao||"");
+  const preco=elemento("div","price",dinheiro(p.preco));
+  const botao=elemento("button","","Adicionar ao pedido");botao.onclick=()=>adicionar(p);
+  info.append(titulo,desc,preco,botao);card.append(art,info);area.append(card);
+ }
 }
-
-header .logo span { color: #ffae58; }
-header p { margin: 6px 0; color: #f3d6c1; }
-
-.banner {
-  background: #fce8d7;
-  padding: 18px;
-  text-align: center;
-  font-weight: 650;
+function adicionar(p){const atual=carrinho.get(p.id);carrinho.set(p.id,{produto:p,quantidade:(atual?.quantidade||0)+1});desenharCarrinho();}
+function desenharCarrinho(){
+ const area=$("cartItems");area.replaceChildren();let total=0;
+ for(const [id,item] of carrinho){
+  total+=Number(item.produto.preco)*item.quantidade;
+  const linha=elemento("div","cart-item");
+  const descricao=elemento("span","",item.quantidade+" × "+item.produto.nome+" — "+dinheiro(item.produto.preco*item.quantidade));
+  const remover=elemento("button","","Remover 1");remover.onclick=()=>{
+   if(item.quantidade===1)carrinho.delete(id);else item.quantidade--;desenharCarrinho();
+  };linha.append(descricao,remover);area.append(linha);
+ }
+ if(!carrinho.size)area.textContent="Seu carrinho está vazio.";
+ $("total").textContent=carrinho.size?"Total: "+dinheiro(total):"";
+ $("checkout").disabled=!carrinho.size;
 }
-
-.wrap {
-  max-width: 1060px;
-  margin: auto;
-  padding: 24px 16px 100px;
+$("checkout").onclick=()=>{
+ if(!WHATSAPP){$("whatsappNotice").hidden=false;return;}
+ const itens=[...carrinho.values()];
+ const total=itens.reduce((s,i)=>s+Number(i.produto.preco)*i.quantidade,0);
+ const texto="Olá! Gostaria de fazer este pedido no Brasa Burger:\n\n"+
+ itens.map(i=>i.quantidade+"x "+i.produto.nome+" — "+dinheiro(i.produto.preco*i.quantidade)).join("\n")+
+ "\n\nTotal: "+dinheiro(total);
+ window.open("https://wa.me/"+WHATSAPP+"?text="+encodeURIComponent(texto),"_blank","noopener");
+};
+async function iniciar(){
+ try{
+  const filtroRestaurante=RESTAURANTE_ID===null?"":"&restaurante_id=eq."+encodeURIComponent(RESTAURANTE_ID);
+  const params=new URLSearchParams("select=id,nome,descricao,preco,categoria_id,imagem_url");
+  if(RESTAURANTE_ID!==null)params.set("restaurante_id","eq."+RESTAURANTE_ID);
+  params.set("order","id.asc");
+  produtos=await consultar("Produtos",params);
+  const catParams=new URLSearchParams("select=id,nome");
+  if(RESTAURANTE_ID!==null)catParams.set("restaurante_id","eq."+RESTAURANTE_ID);
+  catParams.set("order","nome.asc");
+  categorias=await consultar("categorias",catParams);
+  desenharFiltros();desenharProdutos();
+ }catch(e){$("status").textContent="Erro ao carregar o cardápio: "+e.message;console.error(e);}
 }
-
-.top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.top h1 { font-size: 26px; }
-
-.pill {
-  background: #eaf6e9;
-  color: #256d36;
-  padding: 7px 11px;
-  border-radius: 100px;
-  font-size: 13px;
-}
-
-.filters {
-  display: flex;
-  gap: 8px;
-  overflow: auto;
-  padding: 8px 0 24px;
-}
-
-.filters button {
-  white-space: nowrap;
-  border: 1px solid #e4d5c9;
-  background: white;
-  border-radius: 22px;
-  padding: 10px 15px;
-  cursor: pointer;
-  font-weight: 650;
-}
-
-.filters button.active {
-  background: var(--dark);
-  color: white;
-}
-
-.products {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
-  gap: 16px;
-}
-
-.product {
-  background: white;
-  border: 1px solid #f0e1d6;
-  border-radius: 18px;
-  overflow: hidden;
-  box-shadow: 0 5px 18px #3a1b0e0b;
-}
-
-.art {
-  height: 150px;
-  background: linear-gradient(135deg, #ffe0ac, #f4b87d);
-  display: grid;
-  place-items: center;
-  font-size: 76px;
-  overflow: hidden;
-}
-
-.art img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-}
-
-.info { padding: 16px; }
-.info h3 { margin: 0 0 8px; }
-
-.info p {
+iniciar();
+</script>
+</body>
+</html>
