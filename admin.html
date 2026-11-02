@@ -91,8 +91,7 @@
 </select>
         <label>Preço (R$)</label>
         <input id="preco" type="number" min="0" step="0.01" required>
-<label>Foto do produto</label>
- <input type="file" id="FotoProduto" accept="image/*">       
+
         <button type="submit" id="salvarProduto">Salvar produto</button>
         <button type="button" id="cancelarEdicao" class="secondary hidden">Cancelar edição</button>
       </form>
@@ -213,31 +212,6 @@ for (const categoria of categorias) {
 
   listaCategorias.appendChild(item);
 }}
- async function enviarFotoProduto(arquivo) {
-  if (!arquivo) return null;
-
-  const extensao = arquivo.name.split(".").pop().toLowerCase();
-  const nomeArquivo = ${restauranteId}/${crypto.randomUUID()}.${extensao}
-  const resposta = await fetch(
-    ${SUPABASE_URL}/storage/v1/object/produtos/${nomeArquivo}`
-    {
-      method: "POST",
-      headers: {
-        apikey: SUPABASE_KEY,
-        Authorization: Bearer ${token},
-        "Content-Type": arquivo.type,
-        "x-upsert": "false"
-      },
-      body: arquivo
-    }
-  );
-
-  if (!resposta.ok) {
-    throw new Error("Erro ao enviar foto: " + await resposta.text());
-  }
-
-  return ${SUPABASE_URL}/storage/v1/object/public/produtos/${nomeArquivo};
-}
   async function carregarProdutos() {
     try {
       produtosAtuais = await requisicao(
@@ -323,11 +297,6 @@ categoria_id: Number($("categoria").value)
     }
 
     try {
-     const arquivoFoto = $("FotoProduto").files[0];
-
-if (arquivoFoto) {
-  dados.imagem_url = await enviarFotoProduto(arquivoFoto);
-}
       if (editandoId !== null) {
         await requisicao(
           "/rest/v1/Produtos?id=eq." + editandoId +
