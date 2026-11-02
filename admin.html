@@ -218,9 +218,8 @@ for (const categoria of categorias) {
 
   const extensao = arquivo.name.split(".").pop().toLowerCase();
   const nomeArquivo = ${restauranteId}/${crypto.randomUUID()}.${extensao};
-
   const resposta = await fetch(
-    ${SUPABASE_URL}/storage/v1/object/Produtos/${nomeArquivo},
+    ${SUPABASE_URL}/storage/v1/object/produtos/${nomeArquivo},
     {
       method: "POST",
       headers: {
