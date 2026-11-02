@@ -217,9 +217,9 @@ for (const categoria of categorias) {
   if (!arquivo) return null;
 
   const extensao = arquivo.name.split(".").pop().toLowerCase();
-  const nomeArquivo = ${restauranteId}/${crypto.randomUUID()}.${extensao};
+  const nomeArquivo = ${restauranteId}/${crypto.randomUUID()}.${extensao}
   const resposta = await fetch(
-    ${SUPABASE_URL}/storage/v1/object/produtos/${nomeArquivo},
+    ${SUPABASE_URL}/storage/v1/object/produtos/${nomeArquivo}`
     {
       method: "POST",
       headers: {
@@ -236,7 +236,7 @@ for (const categoria of categorias) {
     throw new Error("Erro ao enviar foto: " + await resposta.text());
   }
 
-  return ${SUPABASE_URL}/storage/v1/object/public/Produtos/${nomeArquivo};
+  return ${SUPABASE_URL}/storage/v1/object/public/produtos/${nomeArquivo};
 }
   async function carregarProdutos() {
     try {
